@@ -11,8 +11,9 @@ from pathlib import Path
 
 from narae_client import BridgeError, Client, load_profile, tool_failed
 from secure_store import Store, StoreError
+from screen_images import capture, save_images, suppress_images
 
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 SECRET_FIELDS = {"pin", "token", "access_token", "refreshtoken", "refresh_token", "password",
                  "secret", "client_secret", "authorization", "api_key", "apikey"}
 
@@ -84,7 +85,13 @@ def arguments():
     sub.add_parser("phone-status", help="나래 상태와 휴대폰 연결 상태 조회")
     catalog = sub.add_parser("tools", help="실제 서버 도구 목록과 스키마 조회")
     catalog.add_argument("--name", help="상세 스키마를 볼 도구 이름")
+    shot = sub.add_parser("screenshot", help="최신 화면 revision으로 1회 캡처하고 실제 이미지 파일 반환")
+    shot.add_argument("--output", "-o", help="저장할 .jpg/.png 경로. 기존 파일은 덮어쓰지 않음")
+    shot.add_argument("--image-dir", help="자동 이름 이미지 저장 폴더")
+    shot.add_argument("--revision", help="이미 읽은 최신 revision. 생략하면 화면 읽기 1회")
     call = sub.add_parser("call", help="실제 목록에 있는 MCP 도구 한 번 호출")
+    call.add_argument("--image-dir", help="반환된 이미지 저장 폴더. 기본은 개인 captures 폴더")
+    call.add_argument("--inline-images", action="store_true", help="호스트 연동용: 파일 대신 원본 MCP image 블록 출력")
     call.add_argument("name")
     source = call.add_mutually_exclusive_group()
     source.add_argument("--args", default="{}", help="JSON 객체. 민감정보·한글은 --args-file 권장")
@@ -140,6 +147,9 @@ def main():
                     raise BridgeError("실제 서버 목록에 없는 도구입니다.")
                 result = by_name[args.name] if args.name else [
                     {"name": tool["name"], "description": tool.get("description", "")} for tool in tools]
+            elif args.command == "screenshot":
+                result = capture(client, by_name, output=args.output, directory=args.image_dir, revision=args.revision)
+                failed = tool_failed(result)
             elif args.command == "phone-status":
                 names = ("narae_status", "phone_connection_status")
                 if any(name not in by_name for name in names):
@@ -153,6 +163,10 @@ def main():
                     raise BridgeError("실제 서버 목록에 없는 도구입니다.")
                 result = client.request("tools/call", {"name": args.name, "arguments": params})
                 failed = tool_failed(result)
+                if failed:
+                    result = suppress_images(result)
+                elif not args.inline_images:
+                    result = save_images(result, directory=args.image_dir)
         emit(result, profile)
         return 2 if failed else 0
     except (StoreError, BridgeError, OSError, ValueError, KeyError, TypeError) as exc:

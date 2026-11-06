@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "remote-naraeon-cli",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "등록된 나래온 연결정보를 바로 불러와 MCP를 호출하는 Windows 로컬 CLI와 사용 스킬",
   "extensions": {
     "com.openai": {

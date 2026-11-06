@@ -16,3 +16,6 @@ venv/
 dist/
 build/
 .pytest_cache/
+captures/
+private-captures/
+*.capture.json

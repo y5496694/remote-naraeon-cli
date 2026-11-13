@@ -46,10 +46,34 @@ def default_directory():
     return Path(root) / "RemoteNaraeonCLI"
 
 
+def device_id(value):
+    import re
+    if not isinstance(value, str) or not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,39}", value):
+        raise StoreError("기기 이름은 영문 소문자·숫자·_·-로 1~40자입니다.")
+    if value in {"con", "prn", "aux", "nul"} or re.fullmatch(r"(?:com|lpt)[0-9]", value):
+        raise StoreError("Windows 예약 이름은 기기 이름으로 쓸 수 없습니다.")
+    return value
+
+
+def registered_devices(directory=None):
+    root = Path(directory) if directory else default_directory()
+    names = ["default"] if (root / "connection-v2.dpapi").is_file() else []
+    for path in sorted((root / "devices").glob("*.dpapi")):
+        try:
+            name = device_id(path.stem)
+        except StoreError:
+            continue
+        if name != "default" and path.is_file() and not path.is_symlink():
+            names.append(name)
+    return names
+
+
 class Store:
-    def __init__(self, directory=None):
-        self.directory = Path(directory) if directory else default_directory()
-        self.path = self.directory / "connection-v2.dpapi"
+    def __init__(self, directory=None, device="default"):
+        root = Path(directory) if directory else default_directory()
+        self.device = device_id(device)
+        self.directory = root if device == "default" else root / "devices"
+        self.path = self.directory / ("connection-v2.dpapi" if device == "default" else device + ".dpapi")
 
     def save(self, profile, *, replace=False):
         if self.path.exists() and not replace:

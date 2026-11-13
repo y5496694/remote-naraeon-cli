@@ -94,7 +94,7 @@ class Client:
         self.sequence = 0
         self.headers = {"Authorization": "Bearer " + profile["token"], "Content-Type": "application/json", "Accept": "application/json, text/event-stream"}
         self.opener = urllib.request.build_opener(NoRedirect())
-        self.initialized = self.request("initialize", {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "remote-naraeon-cli", "version": "0.3.0"}})
+        self.initialized = self.request("initialize", {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "remote-naraeon-cli", "version": "0.4.0"}})
         if not isinstance(self.initialized, dict) or not isinstance(self.initialized.get("protocolVersion"), str):
             raise BridgeError("MCP initialization returned an invalid protocol version.")
         self.headers["MCP-Protocol-Version"] = self.initialized["protocolVersion"]
